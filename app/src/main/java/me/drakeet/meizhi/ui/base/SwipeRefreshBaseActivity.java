@@ -34,9 +34,11 @@ import me.drakeet.meizhi.widget.MultiSwipeRefreshLayout;
 public abstract class SwipeRefreshBaseActivity extends ToolbarActivity {
 
     @Bind(R.id.swipe_refresh_layout) public MultiSwipeRefreshLayout mSwipeRefreshLayout;
+    private boolean mIsRequestDataRefresh = false;
 
 
-    @Override public void onCreate(Bundle savedInstanceState, PersistableBundle persistentState) {
+    @Override
+    public void onCreate(Bundle savedInstanceState, PersistableBundle persistentState) {
         super.onCreate(savedInstanceState, persistentState);
         ButterKnife.bind(this);
     }
@@ -53,27 +55,33 @@ public abstract class SwipeRefreshBaseActivity extends ToolbarActivity {
             mSwipeRefreshLayout.setColorSchemeResources(R.color.refresh_progress_3,
                     R.color.refresh_progress_2, R.color.refresh_progress_1);
             // do not use lambda!!
-            mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-                @Override public void onRefresh() {
-                    requestDataRefresh();
-                }
-            });
+            mSwipeRefreshLayout.setOnRefreshListener(
+                    new SwipeRefreshLayout.OnRefreshListener() {
+                        @Override public void onRefresh() {
+                            requestDataRefresh();
+                        }
+                    });
         }
     }
 
 
-    public void requestDataRefresh() {}
+    public void requestDataRefresh() {
+        mIsRequestDataRefresh = true;
+    }
 
 
-    public void setRefreshing(boolean refreshing) {
+    public void setRequestDataRefresh(boolean requestDataRefresh) {
         if (mSwipeRefreshLayout == null) {
             return;
         }
-        if (!refreshing) {
-            // 防止刷新消失太快，让子弹飞一会儿. do not use lambda!!
+        if (!requestDataRefresh) {
+            mIsRequestDataRefresh = false;
+            // 防止刷新消失太快，让子弹飞一会儿.
             mSwipeRefreshLayout.postDelayed(new Runnable() {
                 @Override public void run() {
-                    mSwipeRefreshLayout.setRefreshing(false);
+                    if (mSwipeRefreshLayout != null) {
+                        mSwipeRefreshLayout.setRefreshing(false);
+                    }
                 }
             }, 1000);
         }
@@ -88,8 +96,12 @@ public abstract class SwipeRefreshBaseActivity extends ToolbarActivity {
     }
 
 
-    public void setSwipeableChildren(
-            MultiSwipeRefreshLayout.CanChildScrollUpCallback canChildScrollUpCallback) {
+    public void setSwipeableChildren(MultiSwipeRefreshLayout.CanChildScrollUpCallback canChildScrollUpCallback) {
         mSwipeRefreshLayout.setCanChildScrollUpCallback(canChildScrollUpCallback);
+    }
+
+
+    public boolean isRequestDataRefresh() {
+        return mIsRequestDataRefresh;
     }
 }

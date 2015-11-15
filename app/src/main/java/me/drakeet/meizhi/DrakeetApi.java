@@ -17,16 +17,24 @@
  * along with Meizhi.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.drakeet.meizhi.event;
+package me.drakeet.meizhi;
 
-import android.view.View;
+import me.drakeet.meizhi.data.DGankData;
+import retrofit.http.GET;
+import retrofit.http.Headers;
+import retrofit.http.Query;
+import rx.Observable;
 
-import me.drakeet.meizhi.model.Meizhi;
+// @formatter:off
 
 /**
- * 邪恶的 class 名。。。。
- * Created by drakeet on 7/1/15.
+ * Created by drakeet on 8/9/15.
  */
-public interface OnMeizhiTouchListener {
-    void onTouch(View v, View meizhiView, View card, Meizhi meizhi);
+public interface DrakeetApi {
+
+    @Headers({ "X-LC-Id: 0azfScvBLCC9tAGRAwIhcC40",
+               "X-LC-Key: gAuE93qAusvP8gk1VW8DtOUb",
+               "Content-Type: application/json" })
+    @GET("/Gank?limit=1") Observable<DGankData> getDGankData(
+            @Query("where") String where);// format {"tag":"2015-11-10"}
 }

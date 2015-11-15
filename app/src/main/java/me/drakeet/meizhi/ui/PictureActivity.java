@@ -19,6 +19,8 @@
 
 package me.drakeet.meizhi.ui;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.view.ViewCompat;
@@ -36,6 +38,7 @@ import me.drakeet.meizhi.ui.base.ToolbarActivity;
 import me.drakeet.meizhi.util.RxMeizhi;
 import me.drakeet.meizhi.util.ShareUtils;
 import me.drakeet.meizhi.util.ToastUtils;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import uk.co.senab.photoview.PhotoViewAttacher;
 
@@ -60,6 +63,13 @@ public class PictureActivity extends ToolbarActivity {
         return true;
     }
 
+    public static Intent newIntent(Context context, String url, String desc) {
+        Intent intent = new Intent(context, PictureActivity.class);
+        intent.putExtra(PictureActivity.EXTRA_IMAGE_URL, url);
+        intent.putExtra(PictureActivity.EXTRA_IMAGE_TITLE, desc);
+        return intent;
+    }
+
 
     private void parseIntent() {
         mImageUrl = getIntent().getStringExtra(EXTRA_IMAGE_URL);
@@ -71,15 +81,12 @@ public class PictureActivity extends ToolbarActivity {
         super.onCreate(savedInstanceState);
         ButterKnife.bind(this);
         parseIntent();
-
         // init image view
         ViewCompat.setTransitionName(mImageView, TRANSIT_PIC);
         Picasso.with(this).load(mImageUrl).into(mImageView);
-
         // set up app bar
         setAppBarAlpha(0.7f);
         setTitle(mImageTitle);
-
         setupPhotoAttacher();
     }
 
@@ -87,31 +94,36 @@ public class PictureActivity extends ToolbarActivity {
     private void setupPhotoAttacher() {
         mPhotoViewAttacher = new PhotoViewAttacher(mImageView);
         mPhotoViewAttacher.setOnViewTapListener((view, v, v1) -> hideOrShowToolbar());
+        // @formatter:off
         mPhotoViewAttacher.setOnLongClickListener(v -> {
-            new AlertDialog.Builder(PictureActivity.this).setMessage(
-                    getString(R.string.ask_saving_picture))
-                    .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
-                        dialog.dismiss();
-                    })
-                    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                        saveImageToGallery();
-                        dialog.dismiss();
-                    })
+            new AlertDialog.Builder(PictureActivity.this)
+                    .setMessage(getString(R.string.ask_saving_picture))
+                    .setNegativeButton(android.R.string.cancel,
+                            (dialog, which) -> dialog.dismiss())
+                    .setPositiveButton(android.R.string.ok,
+                            (dialog, which) -> {
+                                saveImageToGallery();
+                                dialog.dismiss();
+                            })
                     .show();
+            // @formatter:on
             return true;
         });
     }
 
 
     private void saveImageToGallery() {
-        RxMeizhi.saveImageAndGetPathObservable(this, mImageUrl, mImageTitle)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(uri -> {
-                    File appDir = new File(Environment.getExternalStorageDirectory(), "Meizhi");
-                    String msg = String.format(getString(R.string.picture_has_save_to),
-                            appDir.getAbsolutePath());
-                    ToastUtils.showShort(msg);
-                }, error -> ToastUtils.showLong(error.getMessage() + "\n再试试..."));
+        // @formatter:off
+        Subscription s = RxMeizhi.saveImageAndGetPathObservable(this, mImageUrl, mImageTitle)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(uri -> {
+                File appDir = new File(Environment.getExternalStorageDirectory(), "Meizhi");
+                String msg = String.format(getString(R.string.picture_has_save_to),
+                        appDir.getAbsolutePath());
+                ToastUtils.showShort(msg);
+            }, error -> ToastUtils.showLong(error.getMessage() + "\n再试试..."));
+        // @formatter:on
+        addSubscription(s);
     }
 
 
@@ -154,6 +166,7 @@ public class PictureActivity extends ToolbarActivity {
 
     @Override protected void onDestroy() {
         super.onDestroy();
+        mPhotoViewAttacher.cleanup();
         ButterKnife.unbind(this);
     }
 }
